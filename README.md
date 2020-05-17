@@ -1,0 +1,1 @@
+# IAPManager for Unity
