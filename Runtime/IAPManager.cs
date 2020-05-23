@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Purchasing;
@@ -8,8 +9,8 @@ namespace NuclearBand
     public class IAPManager : IStoreListener
     {
         public static event Action<string, decimal, string, string> OnPurchase;
-
-        public static IAPBank IAPBank;
+        public static event Action OnInit;
+        public static List<IAPItem> IAPItems;
         private static IAPManager instance;
         private static Action OnPurchaseSuccess;
         private static Action OnPurchaseFail;
@@ -17,11 +18,11 @@ namespace NuclearBand
         private static IExtensionProvider extensions;
         public static bool Initialized => controller != null;
 
-        public static void Init(IAPBank iapBank)
+        public static void Init(List<IAPItem> iapItems)
         {
-            IAPBank = iapBank;
+            IAPItems = iapItems;
             var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-            foreach (var iapItem in iapBank.IAPItems)
+            foreach (var iapItem in IAPItems)
                 builder.AddProduct(iapItem.ID, ProductType.Consumable, new IDs
                 {
                     {iapItem.ID, GooglePlay.Name},
@@ -36,12 +37,13 @@ namespace NuclearBand
         {
             IAPManager.controller = controller;
             IAPManager.extensions = extensions;
+            OnInit?.Invoke();
         }
 
         public static void Purchase(string productId, Action onSuccess, Action onFail)
         {
 #if UNITY_EDITOR
-            var iapItem = IAPBank.IAPItems.Find(item => item.ID == productId);
+            var iapItem = IAPItems.Find(item => item.ID == productId);
             if (iapItem == null)
             {
                 onFail?.Invoke();
@@ -87,8 +89,7 @@ namespace NuclearBand
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
         {
-            OnPurchase?.Invoke(args.purchasedProduct.definition.id, args.purchasedProduct.metadata.localizedPrice, args.purchasedProduct.metadata.isoCurrencyCode, args.purchasedProduct.hasReceipt ? args.purchasedProduct.receipt : null);
-            var iapItem = IAPBank.IAPItems.Find(item => item.ID == args.purchasedProduct.definition.id);
+            var iapItem = IAPItems.Find(item => item.ID == args.purchasedProduct.definition.id);
             if (iapItem == null)
             {
                 OnPurchaseFail?.Invoke();
@@ -102,7 +103,8 @@ namespace NuclearBand
             
             OnPurchaseSuccess?.Invoke();
             OnPurchaseSuccess = null;
-
+            
+            OnPurchase?.Invoke(args.purchasedProduct.definition.id, args.purchasedProduct.metadata.localizedPrice, args.purchasedProduct.metadata.isoCurrencyCode, args.purchasedProduct.hasReceipt ? args.purchasedProduct.receipt : null);
             return PurchaseProcessingResult.Complete;
         }
 
@@ -124,7 +126,7 @@ namespace NuclearBand
 
         public static IAPItem GetIAPItem(string productId)
         {
-            return IAPBank.IAPItems.FirstOrDefault(item => item.ID == productId);
+            return IAPItems.FirstOrDefault(item => item.ID == productId);
         }
     }
 }
