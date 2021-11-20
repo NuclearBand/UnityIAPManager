@@ -1,7 +1,7 @@
 {
   "name": "com.nuclearband.iapmanager",
   "displayName": "IAPManager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "dependencies": {
     "com.unity.purchasing": "4.1.1"
   },
