@@ -1,7 +1,9 @@
 {
     "name": "com.nuclearband.iapmanager",
+    "rootNamespace": "",
     "references": [
-        "Unity.IAP.Purchasing.EditorTests"
+        "UnityEngine.Purchasing",
+        "UnityEngine.Purchasing.Stores"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

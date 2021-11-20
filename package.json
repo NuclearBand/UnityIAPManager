@@ -3,11 +3,11 @@
   "displayName": "IAPManager",
   "version": "1.0.0",
   "dependencies": {
-    "com.unity.purchasing": "2.0.6"
+    "com.unity.purchasing": "4.1.1"
   },
   "author": {
-    "name": "Tr0sT",
-    "url": "https://github.com/Tr0sT"
+    "name": "NuclearBand",
+    "url": "https://github.com/NuclearBand"
   },
   "keywords": [
     "tools",
@@ -16,7 +16,7 @@
     "IAP",
     "nuclearband"
   ],
-  "repository": "https://github.com/Tr0sT/UnityIAPManager.git#upm",
+  "repository": "https://github.com/NuclearBand/UnityIAPManager.git#upm",
   "license": "MIT",
   "type": "library",
   "description": "IAPManager for Unity In App Purchasing library"
