@@ -1,6 +1,8 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Purchasing;
 
@@ -8,14 +10,14 @@ namespace NuclearBand
 {
     public class IAPManager : IStoreListener
     {
-        public static event Action<string, decimal, string, string> OnPurchase;
-        public static event Action OnInit;
-        public static List<IAPItem> IAPItems;
-        private static IAPManager instance;
-        private static Action OnPurchaseSuccess;
-        private static Action OnPurchaseFail;
-        private static IStoreController controller;
-        private static IExtensionProvider extensions;
+        public static event Action<string, decimal, string, string?>? OnPurchase;
+        public static event Action? OnInit;
+        public static List<IAPItem> IAPItems = null!;
+        private static IAPManager instance = null!;
+        private static Action? OnPurchaseSuccess;
+        private static Action? OnPurchaseFail;
+        private static IStoreController? controller;
+        private static IExtensionProvider extensions = null!;
         public static bool Initialized => controller != null;
 
         public static void Init(List<IAPItem> iapItems)
@@ -25,8 +27,8 @@ namespace NuclearBand
             foreach (var iapItem in IAPItems)
                 builder.AddProduct(iapItem.ID, ProductType.Consumable, new IDs
                 {
-                    {iapItem.ID, GooglePlay.Name},
-                    {iapItem.ID, MacAppStore.Name}
+                    { iapItem.ID, GooglePlay.Name },
+                    { iapItem.ID, MacAppStore.Name }
                 });
 
             instance = new IAPManager();
@@ -40,16 +42,17 @@ namespace NuclearBand
             OnInit?.Invoke();
         }
 
-        public static void Purchase(string productId, Action onSuccess, Action onFail)
+        public static void Purchase(string productId, Action? onSuccess, Action? onFail)
         {
 #if UNITY_EDITOR
             var iapItem = IAPItems.Find(item => item.ID == productId);
             if (iapItem == null)
             {
                 onFail?.Invoke();
-                Debug.LogError("ProcessPurchase did not find item");
+                Debug.LogError("IAPManager: ProcessPurchase did not find item");
                 return;
             }
+
             iapItem.OnBuy();
             onSuccess?.Invoke();
             return;
@@ -58,7 +61,7 @@ namespace NuclearBand
             OnPurchaseFail = onFail;
             if (controller == null)
             {
-                Debug.Log("BuyProductID FAIL. Not initialized.");
+                Debug.Log("IAPManager: BuyProductID FAIL. Not initialized.");
                 OnPurchaseFail?.Invoke();
                 return;
             }
@@ -74,17 +77,24 @@ namespace NuclearBand
         }
 
 
-        public static void RestorePurchases()
+        public static void RestorePurchases(Action? onSuccess, Action? onFail)
         {
-            extensions.GetExtension<IAppleExtensions>().RestoreTransactions(result =>
-            {
-                if (result)
-                {
-                }
-                else
-                {
-                }
-            });
+#if UNITY_IOS
+            extensions.GetExtension<IAppleExtensions>().RestoreTransactions(result => OnRestorePurchases(result, onSuccess, onFail);
+            );
+#endif
+
+#if UNITY_ANDROID
+            extensions.GetExtension<IGooglePlayStoreExtensions>().RestoreTransactions(result => OnRestorePurchases(result, onSuccess, onFail));
+#endif
+        }
+
+        private static void OnRestorePurchases(bool result, Action? onSuccess, Action? onFail)
+        {
+            if (result)
+                onSuccess?.Invoke();
+            else
+                onFail?.Invoke();
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
@@ -93,35 +103,35 @@ namespace NuclearBand
             if (iapItem == null)
             {
                 OnPurchaseFail?.Invoke();
-                Debug.LogError("ProcessPurchase did not find item");
+                Debug.LogError("IAPManager: ProcessPurchase did not find item");
                 return PurchaseProcessingResult.Pending;
             }
 
-            Debug.Log($"ProcessPurchase: PASS. Product: '{args.purchasedProduct.definition.id}'");
+            Debug.Log($"IAPManager: ProcessPurchase: PASS. Product: '{args.purchasedProduct.definition.id}'");
 
             iapItem.OnBuy();
-            
+
             OnPurchaseSuccess?.Invoke();
             OnPurchaseSuccess = null;
-            
+
             OnPurchase?.Invoke(args.purchasedProduct.definition.id, args.purchasedProduct.metadata.localizedPrice, args.purchasedProduct.metadata.isoCurrencyCode, args.purchasedProduct.hasReceipt ? args.purchasedProduct.receipt : null);
             return PurchaseProcessingResult.Complete;
         }
 
         public void OnInitializeFailed(InitializationFailureReason error)
         {
-            Debug.LogError("OnInitializeFailed");
+            Debug.LogError($"IAPManager: OnInitializeFailed - {error}");
         }
 
         public void OnPurchaseFailed(Product i, PurchaseFailureReason p)
         {
-            Debug.LogError("OnPurchaseFailed");
+            Debug.LogError($"IAPManager: OnPurchaseFailed - {p}");
             OnPurchaseFail?.Invoke();
         }
 
-        public static Product GetProductInfo(string productId)
+        public static Product? GetProductInfo(string productId)
         {
-            return controller.products.all.FirstOrDefault(item => item.definition.id == productId);
+            return controller?.products.all.FirstOrDefault(item => item.definition.id == productId);
         }
 
         public static IAPItem GetIAPItem(string productId)
